@@ -1,7 +1,7 @@
 # Onboarding Plan Agent
 
 A small AI agent that turns a new hire's role, team, and company context into
-a personalized, structured 90-day onboarding plan — built for the Mosaic
+a personalized, structured 90-day onboarding plan, built for the Mosaic
 Talent technical assessment.
 
 ## Quick start
@@ -25,7 +25,7 @@ python3 test_fallback.py
 ```
 
 Uses Gemini (`gemini-2.5-flash` by default, configurable via `GEMINI_MODEL`
-in `.env`) — a free key is available at aistudio.google.com/apikey. The
+in `.env`), a free key is available at aistudio.google.com/apikey. The
 architecture underneath isn't tied to any one provider; swapping in Claude
 or OpenAI would mean changing `call_model()` and the function schema in
 `schema.py`, not the retry/validation/fallback logic around them.
@@ -41,17 +41,17 @@ to parse it.** Instead:
 1. **`schema.py`** defines the plan shape twice, deliberately:
    - as a hand-written function declaration (`ONBOARDING_PLAN_FUNCTION`)
      that's handed to Gemini with `tool_config` forced to `mode="ANY"`, so
-     the model has to call it — it can't just reply with prose.
+     the model has to call it, it can't just reply with prose.
    - as a `pydantic` model (`OnboardingPlan`) that independently re-validates
      whatever the model actually returns.
 
    These are kept separate on purpose. A model can call a tool and satisfy
    its JSON Schema (right types, required keys present) while still being
-   semantically wrong — e.g. `end_day < start_day`, or empty task lists.
+   semantically wrong, e.g. `end_day < start_day`, or empty task lists.
    The JSON Schema catches *shape*; pydantic's validators catch *meaning*.
    I don't treat "the model used the tool" as "the output is trustworthy."
 
-2. The plan is a fixed structure — three `Phase` objects (day ranges,
+2. The plan is a fixed structure, three `Phase` objects (day ranges,
    goals, key tasks, milestones) plus top-level `success_metrics` — because
    that maps directly to what the product needs to render, not just what an
    LLM finds easy to produce.
@@ -77,7 +77,7 @@ to stderr) so it's obvious after the fact which path a given run took:
 
 The `--max-retries` flag controls steps 1–2 (default: 2 retries, so 3 total
 attempts before falling back). `--dry-run` skips the API entirely and goes
-straight to the fallback plan — useful for testing the pipeline and schema
+straight to the fallback plan, useful for testing the pipeline and schema
 without burning API calls or needing a key.
 
 `test_fallback.py` exercises the schema/fallback logic in isolation
@@ -87,21 +87,21 @@ without an API key.
 
 ## What I'd improve with more time
 
-- **Structured logging instead of print statements** — emit each attempt
+- **Structured logging instead of print statements**, emit each attempt
   (success/failure, latency, which rung of the fallback ladder) as JSON
   events, so this could feed a dashboard on retry/fallback rates in
-  production — that rate is itself a useful reliability signal.
-- **Partial-credit validation** — right now a validation failure discards
+  production, that rate is itself a useful reliability signal.
+- **Partial-credit validation**, right now a validation failure discards
   the whole response and retries from scratch. A more advanced version
   would keep the parts of the plan that did validate (e.g. phase 1 was
   fine, phase 2 had a bad day range) and only ask the model to fix the
   broken part.
-- **Input validation/sanitization** — role/team/context are currently
+- **Input validation/sanitization**, role/team/context are currently
   passed straight into the prompt. For a real product surface this needs
   basic guarding against prompt injection via user-supplied fields.
-- **Caching** — identical (role, team, context) triples shouldn't need a
+- **Caching**, identical (role, team, context) triples shouldn't need a
   fresh generation every time.
-- **Configurable phase count** — hardcoded to 3 phases (30/60/90). A
+- **Configurable phase count**, hardcoded to 3 phases (30/60/90). A
   90-day plan for a very senior or very junior hire might reasonably want
   a different cadence.
 - **Async/concurrent generation** for batch use (e.g. generating plans for
